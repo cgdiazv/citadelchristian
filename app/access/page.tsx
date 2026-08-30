@@ -36,6 +36,14 @@ import {
   Copy,
   Download,
   FileCode,
+  Upload,
+  UploadCloud,
+  Loader2,
+  Sparkles,
+  Cloud,
+  Plus,
+  Trash2,
+  Info,
 } from "lucide-react";
 import {
   EditablePage,
@@ -45,6 +53,8 @@ import {
   allMediaAssets,
   mediaFolders,
   MediaItem,
+  getCustomMediaAssets,
+  saveCustomMediaAsset,
 } from "@/lib/mediaAssets";
 
 // List of all Citadel Christian School website pages
@@ -78,6 +88,19 @@ export default function AdminAccessPage() {
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
 
+  // Custom Uploaded Media & Cloud State
+  const [customMedia, setCustomMedia] = useState<MediaItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [selectedUploadFolder, setSelectedUploadFolder] = useState<
+    "images" | "logos" | "headers" | "campus-life" | "files" | "brand"
+  >("images");
+  const [selectedUploadCategory, setSelectedUploadCategory] = useState("Uploaded Asset");
+  const [fieldUploadingId, setFieldUploadingId] = useState<string | null>(null);
+
   // Selected Page for Content Editing
   const [editingPage, setEditingPage] = useState<EditablePage | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -96,14 +119,66 @@ export default function AdminAccessPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  // Check existing session
+  // Check existing session & load custom media
   useEffect(() => {
     const session = sessionStorage.getItem("ccs_admin_authenticated");
     const localSession = localStorage.getItem("ccs_admin_authenticated");
     if (session === "true" || localSession === "true") {
       setIsAuthenticated(true);
     }
+    setCustomMedia(getCustomMediaAssets());
   }, []);
+
+  // Upload handler for files to Vercel Blob / Cloud Storage
+  const handleUploadFile = async (
+    file: File,
+    folder: "images" | "logos" | "headers" | "campus-life" | "files" | "brand" = "images",
+    category = "Uploaded Asset"
+  ): Promise<string | null> => {
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadProgress(`Uploading ${file.name}...`);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", folder);
+      formData.append("category", category);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to upload file to cloud storage.");
+      }
+
+      const newItem: MediaItem = {
+        name: data.name,
+        path: data.url,
+        folder: data.folder,
+        category: data.category,
+        type: data.type,
+      };
+
+      const updated = saveCustomMediaAsset(newItem);
+      setCustomMedia(updated);
+      setUploadSuccess(`Successfully uploaded ${data.name}!`);
+      setTimeout(() => setUploadSuccess(null), 4000);
+      return data.url;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload file.";
+      setUploadError(msg);
+      return null;
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
+  };
 
   // Open Page Content Editor for a given page
   const handleOpenPageEditor = (pageInfo: { path: string; title: string; section: string }) => {
@@ -219,8 +294,22 @@ export default function AdminAccessPage() {
       p.section.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Combined media assets (static + cloud uploaded)
+  const allCombinedMedia = [...customMedia, ...allMediaAssets];
+
+  // Dynamic media folder counts including uploaded files
+  const dynamicMediaFolders = [
+    { id: "all", label: "All Folders", icon: "Folder", count: allCombinedMedia.length },
+    { id: "images", label: "/images", icon: "ImageIcon", count: allCombinedMedia.filter((m) => m.folder === "images").length },
+    { id: "logos", label: "/logos", icon: "Shield", count: allCombinedMedia.filter((m) => m.folder === "logos").length },
+    { id: "headers", label: "/headers", icon: "Layout", count: allCombinedMedia.filter((m) => m.folder === "headers").length },
+    { id: "campus-life", label: "/campus-life", icon: "Camera", count: allCombinedMedia.filter((m) => m.folder === "campus-life").length },
+    { id: "files", label: "/files (PDFs)", icon: "FileText", count: allCombinedMedia.filter((m) => m.folder === "files").length },
+    { id: "brand", label: "Brand Assets", icon: "Sparkles", count: allCombinedMedia.filter((m) => m.folder === "brand").length },
+  ];
+
   // Filtered media by selected folder and search query
-  const filteredMedia = allMediaAssets.filter((m) => {
+  const filteredMedia = allCombinedMedia.filter((m) => {
     const matchesFolder = selectedFolder === "all" || m.folder === selectedFolder;
     const matchesQuery =
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -230,7 +319,7 @@ export default function AdminAccessPage() {
   });
 
   // Filtered media for the inline picker
-  const pickerMedia = allMediaAssets.filter((m) => {
+  const pickerMedia = allCombinedMedia.filter((m) => {
     const isImage = m.type === "image";
     const matchesFolder = mediaPickerFolder === "all" || m.folder === mediaPickerFolder;
     return isImage && matchesFolder;
@@ -558,30 +647,77 @@ export default function AdminAccessPage() {
                                     )}
                                   </div>
 
-                                  {/* Path Input & Media Picker Button */}
+                                  {/* Path Input, Direct Cloud Upload, & Media Picker Button */}
                                   <div className="flex-1 w-full space-y-2">
-                                    <input
-                                      type="text"
-                                      value={field.value}
-                                      onChange={(e) =>
-                                        handleFieldChange(sIdx, fIdx, e.target.value)
-                                      }
-                                      placeholder="/images/example.jpg"
-                                      className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-purple-500"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setMediaPickerTargetField({
-                                          sectionIndex: sIdx,
-                                          fieldIndex: fIdx,
-                                        })
-                                      }
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-300 text-xs font-semibold border border-slate-700 transition cursor-pointer"
-                                    >
-                                      <FolderOpen className="w-3.5 h-3.5" />
-                                      <span>Select from Media Library</span>
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        value={field.value}
+                                        onChange={(e) =>
+                                          handleFieldChange(sIdx, fIdx, e.target.value)
+                                        }
+                                        placeholder="/images/example.jpg or https://..."
+                                        className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-purple-500"
+                                      />
+                                      {field.value?.startsWith("http") && (
+                                        <span className="flex-shrink-0 px-2 py-1 rounded bg-purple-900/60 border border-purple-500/40 text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                          <Cloud className="w-3 h-3" />
+                                          CDN
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#581076] hover:bg-[#470a60] text-white text-xs font-semibold shadow-sm transition cursor-pointer">
+                                        {fieldUploadingId === `${sIdx}-${fIdx}` ? (
+                                          <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <span>Uploading...</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <UploadCloud className="w-3.5 h-3.5" />
+                                            <span>Upload &amp; Replace</span>
+                                          </>
+                                        )}
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          className="hidden"
+                                          disabled={isUploading}
+                                          onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              const fieldKey = `${sIdx}-${fIdx}`;
+                                              setFieldUploadingId(fieldKey);
+                                              const uploadedUrl = await handleUploadFile(
+                                                file,
+                                                "images",
+                                                editingPage?.title || "Page Content"
+                                              );
+                                              setFieldUploadingId(null);
+                                              if (uploadedUrl) {
+                                                handleFieldChange(sIdx, fIdx, uploadedUrl);
+                                              }
+                                            }
+                                          }}
+                                        />
+                                      </label>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setMediaPickerTargetField({
+                                            sectionIndex: sIdx,
+                                            fieldIndex: fIdx,
+                                          })
+                                        }
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                                      >
+                                        <FolderOpen className="w-3.5 h-3.5 text-purple-400" />
+                                        <span>Select from Library</span>
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -818,35 +954,73 @@ export default function AdminAccessPage() {
             {/* VIEW 4: MEDIA LIBRARY ORGANIZED BY FOLDERS */}
             {activeTab === "media" && (
               <div className="space-y-6">
-                {/* Header info */}
+                {/* Header info & Upload Button */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-purple-400">
-                      Asset Manager
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-purple-400">
+                        Asset Manager
+                      </span>
+                      {customMedia.length > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-200 border border-purple-500/30 flex items-center gap-1">
+                          <Cloud className="w-3 h-3" />
+                          {customMedia.length} Uploaded
+                        </span>
+                      )}
+                    </div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-0.5">
                       Media Library ({filteredMedia.length})
                     </h1>
                     <p className="text-xs text-slate-400 mt-1">
-                      Browse and manage assets organized by public repository folders.
+                      Browse, upload, and manage assets organized by cloud storage &amp; repository folders.
                     </p>
                   </div>
 
-                  <div className="relative w-full sm:w-72">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search files by name or path..."
-                      className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
-                    />
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:w-64">
+                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search files..."
+                        className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadError(null);
+                        setUploadSuccess(null);
+                        setUploadModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#581076] hover:bg-[#470a60] text-white text-xs font-bold shadow-lg shadow-purple-950/40 transition cursor-pointer flex-shrink-0"
+                    >
+                      <UploadCloud className="w-4 h-4" />
+                      <span>Upload to Cloud</span>
+                    </button>
                   </div>
                 </div>
 
+                {/* Upload feedback banners */}
+                {uploadSuccess && (
+                  <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm flex items-center gap-3 animate-in fade-in">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                    <span>{uploadSuccess}</span>
+                  </div>
+                )}
+
+                {uploadError && (
+                  <div className="p-4 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs sm:text-sm flex items-center gap-3 animate-in fade-in">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
                 {/* Folder Navigation Filter Tabs */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                  {mediaFolders.map((f) => {
+                  {dynamicMediaFolders.map((f) => {
                     const isActive = selectedFolder === f.id;
                     return (
                       <button
@@ -885,75 +1059,112 @@ export default function AdminAccessPage() {
 
                 {/* Media Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {filteredMedia.map((media) => (
-                    <div
-                      key={media.path}
-                      className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-md group hover:border-purple-500/50 transition flex flex-col justify-between"
-                    >
-                      {/* Image Preview or Document Icon */}
-                      {media.type === "image" ? (
-                        <div className="relative w-full h-44 bg-slate-950 p-2 flex items-center justify-center overflow-hidden">
-                          <Image
-                            src={media.path}
-                            alt={media.name}
-                            fill
-                            className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                      ) : (
-                        <div className="relative w-full h-36 bg-slate-950/70 p-4 flex flex-col items-center justify-center text-center border-b border-slate-800/80">
-                          <div className="w-12 h-12 rounded-xl bg-red-950/40 text-red-400 flex items-center justify-center border border-red-500/20 mb-2">
-                            <FileText className="w-6 h-6" />
+                  {filteredMedia.map((media) => {
+                    const isCustomUploaded = customMedia.some((c) => c.path === media.path);
+
+                    return (
+                      <div
+                        key={media.path}
+                        className={`bg-slate-900 rounded-2xl border ${
+                          isCustomUploaded ? "border-purple-500/60 shadow-purple-950/20" : "border-slate-800"
+                        } overflow-hidden shadow-md group hover:border-purple-500/80 transition flex flex-col justify-between`}
+                      >
+                        {/* Image Preview or Document Icon */}
+                        {media.type === "image" ? (
+                          <div className="relative w-full h-44 bg-slate-950 p-2 flex items-center justify-center overflow-hidden">
+                            <Image
+                              src={media.path}
+                              alt={media.name}
+                              fill
+                              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {isCustomUploaded && (
+                              <div className="absolute top-2 right-2 bg-[#581076] text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
+                                <Cloud className="w-3 h-3" />
+                                <span>Cloud CDN</span>
+                              </div>
+                            )}
                           </div>
-                          <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded">
-                            PDF Document
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Media Details */}
-                      <div className="p-4 border-t border-slate-800 flex-1 flex flex-col justify-between space-y-3 bg-slate-900">
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-purple-300">
-                              /{media.folder}
+                        ) : (
+                          <div className="relative w-full h-36 bg-slate-950/70 p-4 flex flex-col items-center justify-center text-center border-b border-slate-800/80">
+                            <div className="w-12 h-12 rounded-xl bg-red-950/40 text-red-400 flex items-center justify-center border border-red-500/20 mb-2">
+                              <FileText className="w-6 h-6" />
+                            </div>
+                            <span className="text-[10px] font-mono uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded">
+                              PDF Document
                             </span>
-                            <span className="text-[10px] text-slate-400 font-semibold truncate">
-                              {media.category}
-                            </span>
+                            {isCustomUploaded && (
+                              <span className="mt-1 text-[9px] font-bold text-purple-300 flex items-center gap-1">
+                                <Cloud className="w-2.5 h-2.5" />
+                                Cloud Upload
+                              </span>
+                            )}
                           </div>
-                          <h3 className="text-xs font-bold text-white truncate" title={media.name}>
-                            {media.name}
-                          </h3>
-                          <p className="text-[10px] font-mono text-slate-500 truncate mt-0.5" title={media.path}>
-                            {media.path}
-                          </p>
-                        </div>
+                        )}
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyPath(media.path)}
-                            className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition cursor-pointer"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy Path</span>
-                          </button>
+                        {/* Media Details */}
+                        <div className="p-4 border-t border-slate-800 flex-1 flex flex-col justify-between space-y-3 bg-slate-900">
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-purple-300">
+                                /{media.folder}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-semibold truncate">
+                                {media.category}
+                              </span>
+                            </div>
+                            <h3 className="text-xs font-bold text-white truncate" title={media.name}>
+                              {media.name}
+                            </h3>
+                            <p className="text-[10px] font-mono text-slate-500 truncate mt-0.5" title={media.path}>
+                              {media.path}
+                            </p>
+                          </div>
 
-                          <a
-                            href={media.path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 font-bold transition"
-                          >
-                            <span>Open</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
+                          {/* Action Buttons */}
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyPath(media.path)}
+                              className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy Path</span>
+                            </button>
+
+                            <div className="flex items-center gap-3">
+                              {isCustomUploaded && (
+                                <button
+                                  type="button"
+                                  title="Remove from custom list"
+                                  onClick={() => {
+                                    if (confirm(`Remove ${media.name} from your uploaded list?`)) {
+                                      const filtered = customMedia.filter((c) => c.path !== media.path);
+                                      setCustomMedia(filtered);
+                                      localStorage.setItem("ccs_custom_media_assets", JSON.stringify(filtered));
+                                    }
+                                  }}
+                                  className="text-[11px] text-slate-500 hover:text-red-400 transition cursor-pointer p-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              <a
+                                href={media.path}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 font-bold transition"
+                              >
+                                <span>Open</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {filteredMedia.length === 0 && (
@@ -1050,13 +1261,207 @@ export default function AdminAccessPage() {
                 ))}
               </div>
 
-              <div className="pt-2 border-t border-slate-800 flex justify-end">
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-3">
+                <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#581076] hover:bg-[#470a60] text-white text-xs font-semibold shadow-sm transition cursor-pointer">
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>Upload New Image</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const url = await handleUploadFile(
+                          file,
+                          "images",
+                          editingPage?.title || "Page Media"
+                        );
+                        if (url && mediaPickerTargetField) {
+                          handleFieldChange(
+                            mediaPickerTargetField.sectionIndex,
+                            mediaPickerTargetField.fieldIndex,
+                            url
+                          );
+                          setMediaPickerTargetField(null);
+                        }
+                      }
+                    }}
+                  />
+                </label>
+
                 <button
                   type="button"
                   onClick={() => setMediaPickerTargetField(null)}
                   className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Media to Cloud Modal */}
+        {uploadModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-slate-900 rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 border border-slate-800 animate-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-900/40 text-purple-300 flex items-center justify-center">
+                    <UploadCloud className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base">Upload Asset to Cloud Storage</h3>
+                    <p className="text-xs text-slate-400">Add images, photos, or documents to high-speed CDN.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadModalOpen(false);
+                    setUploadError(null);
+                  }}
+                  className="text-slate-400 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Upload Drop / Picker Area */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Target Destination Folder
+                  </label>
+                  <select
+                    value={selectedUploadFolder}
+                    onChange={(e) =>
+                      setSelectedUploadFolder(
+                        e.target.value as
+                          | "images"
+                          | "logos"
+                          | "headers"
+                          | "campus-life"
+                          | "files"
+                          | "brand"
+                      )
+                    }
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="images">/images (General Photos &amp; Banners)</option>
+                    <option value="campus-life">/campus-life (Student &amp; Campus Grid)</option>
+                    <option value="headers">/headers (Hero Sliders &amp; Page Headers)</option>
+                    <option value="logos">/logos (Sponsors, Accreditations &amp; Partners)</option>
+                    <option value="brand">/brand (School Logo &amp; Emblems)</option>
+                    <option value="files">/files (PDF Documents, Schedules &amp; Handbooks)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Category Tag / Description
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedUploadCategory}
+                    onChange={(e) => setSelectedUploadCategory(e.target.value)}
+                    placeholder="e.g. 2026 Gala, Academic Calendar, Athletics..."
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                {/* File Dropzone */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Select File (Images or PDF, max 15MB)
+                  </label>
+                  <label className="border-2 border-dashed border-slate-700 hover:border-purple-500 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-950/60 hover:bg-slate-950 group">
+                    <div className="w-12 h-12 rounded-xl bg-purple-950/50 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      {isUploading ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <UploadCloud className="w-6 h-6" />
+                      )}
+                    </div>
+                    <span className="text-sm font-bold text-white group-hover:text-purple-300">
+                      {isUploading ? "Uploading to Cloud Storage..." : "Click or Drag File to Upload"}
+                    </span>
+                    <span className="text-xs text-slate-400 mt-1">
+                      Supports JPG, PNG, WEBP, GIF, SVG, and PDF
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      disabled={isUploading}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = await handleUploadFile(
+                            file,
+                            selectedUploadFolder,
+                            selectedUploadCategory
+                          );
+                          if (url) {
+                            setUploadModalOpen(false);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Status messages */}
+                {isUploading && (
+                  <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-500/30 text-purple-200 text-xs flex items-center gap-2 animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{uploadProgress || "Uploading file..."}</span>
+                  </div>
+                )}
+
+                {uploadError && (
+                  <div className="p-3.5 rounded-xl bg-red-950/70 border border-red-500/40 text-red-300 text-xs space-y-1">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>Upload Error</span>
+                    </div>
+                    <p className="text-[11px] text-red-300/90">{uploadError}</p>
+                  </div>
+                )}
+
+                {/* Cloud Setup Help Note */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                  <div className="flex items-center gap-1 text-slate-300 font-semibold">
+                    <Info className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Vercel Blob / Cloud Storage Info</span>
+                  </div>
+                  <p>
+                    Uploaded assets receive a global high-performance CDN URL and appear immediately in your Media Library and Page Content Editor.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadModalOpen(false);
+                    setUploadError(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Close
                 </button>
               </div>
             </div>

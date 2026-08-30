@@ -149,3 +149,28 @@ export const mediaFolders = [
   { id: "files", label: "/files (PDFs)", icon: "FileText", count: allMediaAssets.filter((m) => m.folder === "files").length },
   { id: "brand", label: "Brand Assets", icon: "Sparkles", count: allMediaAssets.filter((m) => m.folder === "brand").length },
 ];
+
+export function getCustomMediaAssets(): MediaItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem("ccs_custom_media_assets");
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomMediaAsset(item: MediaItem): MediaItem[] {
+  if (typeof window === "undefined") return [item];
+  try {
+    const current = getCustomMediaAssets();
+    const filtered = current.filter((m) => m.path !== item.path);
+    const updated = [item, ...filtered];
+    localStorage.setItem("ccs_custom_media_assets", JSON.stringify(updated));
+    return updated;
+  } catch (err) {
+    console.error("Failed to save custom media asset:", err);
+    return [item];
+  }
+}
+
