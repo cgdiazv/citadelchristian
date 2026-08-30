@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Mail, Check, Loader2 } from "lucide-react";
 
 function FacebookIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -48,10 +49,15 @@ function LinkedinIcon({ className = "w-5 h-5" }: { className?: string }) {
 }
 
 export default function Footer() {
+  const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  if (pathname === "/access") {
+    return null;
+  }
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,8 +299,15 @@ export default function Footer() {
       {/* Sub-Footer Copyright & Powered By */}
       <div className="border-t border-slate-600/40">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-5 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-light gap-2">
-          <div>
-            © 2019-2026 Citadel Christian School
+          <div className="flex items-center gap-2.5">
+            <span>© 2019-2026 Citadel Christian School</span>
+            <span className="text-slate-600">•</span>
+            <Link
+              href="/access"
+              className="text-slate-500 hover:text-slate-300 transition-colors text-[11px]"
+            >
+              Staff Access
+            </Link>
           </div>
           <div>
             Powered by{" "}

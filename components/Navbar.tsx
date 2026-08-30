@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Phone, MapPin, Clock, ChevronDown, Menu, X } from "lucide-react";
 
 function InstagramIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -32,6 +33,7 @@ function FacebookIcon({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [aboutDropdownOpen, setAboutDropdownOpen] = useState(false);
   const [admissionsDropdownOpen, setAdmissionsDropdownOpen] = useState(false);
@@ -52,6 +54,10 @@ export default function Navbar() {
       document.body.style.overflow = "unset";
     }
   }, [mobileMenuOpen]);
+
+  if (pathname === "/access") {
+    return null;
+  }
 
   return (
     <header className="w-full bg-white border-b border-gray-100 shadow-[0_2px_4px_rgba(0,0,0,0.02)] sticky top-0 z-50">

@@ -117,10 +117,10 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className="min-h-full flex flex-col bg-white text-slate-900 font-sans"
+        className="min-h-screen flex flex-col bg-white text-slate-900 font-sans"
       >
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 flex flex-col">{children}</main>
         <Footer />
       </body>
     </html>
