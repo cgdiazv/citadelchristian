@@ -64,7 +64,7 @@ export default function SupportCCSPage() {
               <div className="w-full relative aspect-[385/255] rounded-xl overflow-hidden shadow-md border border-slate-200/80 bg-slate-100">
                 <Image
                   src="/images/support-future-leaders.png"
-                  alt="Citadel Christian School students"
+                  alt="Citadel Christian School students smiling in classroom learning environment"
                   fill
                   priority
                   className="object-cover"
@@ -92,7 +92,7 @@ export default function SupportCCSPage() {
         <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[480px] rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border border-slate-200/80 bg-slate-100">
           <Image
             src="/images/CCS-Grads-scaled.jpg"
-            alt="Citadel Christian School young graduates"
+            alt="Citadel Christian School graduates wearing purple graduation caps and gowns"
             fill
             className="object-cover object-[center_30%]"
           />
@@ -167,7 +167,7 @@ export default function SupportCCSPage() {
                     <div className="relative w-full h-16">
                       <Image
                         src="/logos/GalaSponsorLogo_BluebonnetAbstractTitle.png"
-                        alt="Bluebonnet Abstract & Title"
+                        alt="Bluebonnet Abstract & Title - Citadel Christian School Gala Platinum Sponsor"
                         fill
                         className="object-contain"
                       />
@@ -179,7 +179,7 @@ export default function SupportCCSPage() {
                     <div className="relative w-full h-20">
                       <Image
                         src="/logos/Blue-Bell-Halfmoon-Color-scaled.png"
-                        alt="Blue Bell"
+                        alt="Blue Bell Ice Cream - Citadel Christian School Gala Platinum Sponsor"
                         fill
                         className="object-contain"
                       />
@@ -237,7 +237,7 @@ export default function SupportCCSPage() {
                     <div className="relative w-full h-14 my-auto">
                       <Image
                         src="/logos/GalaSponsorLogo-MeyerCarrington.png"
-                        alt="Meyer Carrington"
+                        alt="Meyer Carrington - Kenneth Meyer - Citadel Christian School Gala Gold Sponsor"
                         fill
                         className="object-contain"
                       />
@@ -252,7 +252,7 @@ export default function SupportCCSPage() {
                     <div className="relative w-full h-14 my-auto">
                       <Image
                         src="/logos/Pencco.png"
-                        alt="Pencco"
+                        alt="Pencco - Ron and Aline Horne - Citadel Christian School Gala Gold Sponsor"
                         fill
                         className="object-contain"
                       />
@@ -285,7 +285,7 @@ export default function SupportCCSPage() {
                   <div className="relative w-full h-16">
                     <Image
                       src="/logos/o3_logo_gold1.png"
-                      alt="Old Three"
+                      alt="Old Three - Jill & Kerr Taylor - Citadel Christian School Gala Silver Sponsor"
                       fill
                       className="object-contain"
                     />

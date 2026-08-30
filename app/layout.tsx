@@ -12,12 +12,90 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Citadel Christian School | Classical • Biblical • Exceptional",
+  metadataBase: new URL("https://citadelchristian.org"),
+  title: {
+    default: "Citadel Christian School | Classical • Biblical • Exceptional",
+    template: "%s | Citadel Christian School",
+  },
   description:
-    "Cultivating wisdom and virtue in students at each developmental stage. Citadel Christian School in Brenham, TX.",
+    "Citadel Christian School is an accredited, Classical Christian school delivering holistic, life-equipping education to PK-12th grade students through highly-qualified, caring teachers.",
+  keywords: [
+    "Citadel Christian School",
+    "Classical Christian School",
+    "Christian School Brenham TX",
+    "University-Model School",
+    "Private Christian School Texas",
+    "PK-12 Christian Education",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: "/favicon.png",
+    apple: "/favicon.png",
   },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://citadelchristian.org",
+    siteName: "Citadel Christian School",
+    title: "Citadel Christian School | Classical • Biblical • Exceptional",
+    description:
+      "Citadel Christian School is an accredited, Classical Christian school delivering holistic, life-equipping education to PK-12th grade students through highly-qualified, caring teachers.",
+    images: [
+      {
+        url: "/favicon.png",
+        width: 512,
+        height: 512,
+        alt: "Citadel Christian School Emblem",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Citadel Christian School | Classical • Biblical • Exceptional",
+    description:
+      "Citadel Christian School is an accredited, Classical Christian school delivering holistic, life-equipping education to PK-12th grade students through highly-qualified, caring teachers.",
+    images: ["/favicon.png"],
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "School",
+  name: "Citadel Christian School",
+  url: "https://citadelchristian.org",
+  logo: "https://citadelchristian.org/favicon.png",
+  image: "https://citadelchristian.org/favicon.png",
+  description:
+    "Citadel Christian School is an accredited, Classical Christian school delivering holistic, life-equipping education to PK-12th grade students through highly-qualified, caring teachers in Brenham, TX.",
+  telephone: "(979) 830-1177",
+  email: "info@citadelchristian.org",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "1005 N Park St",
+    addressLocality: "Brenham",
+    addressRegion: "TX",
+    postalCode: "77833",
+    addressCountry: "US",
+  },
+  sameAs: [
+    "https://www.facebook.com/WisdomandVirtue",
+    "https://www.instagram.com/citadelchristianschool/",
+    "https://www.youtube.com/channel/UC0pBmmZTffKEkIsOS05IrBg",
+    "https://www.linkedin.com/company/citadel-christian-school/",
+  ],
 };
 
 export default function RootLayout({
@@ -31,6 +109,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${roboto.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className="min-h-full flex flex-col bg-white text-slate-900 font-sans"
