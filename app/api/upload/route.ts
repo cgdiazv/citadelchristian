@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         {
           success: false,
           error:
-            "Vercel Blob storage is not connected yet. Please add BLOB_READ_WRITE_TOKEN to your .env.local or Vercel environment variables.",
+            "Cloud storage is not connected yet. Please configure the storage credentials or contact the administrator.",
           isConfigError: true,
         },
         { status: 503 }

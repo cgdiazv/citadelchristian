@@ -119,6 +119,17 @@ export default function AdminAccessPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  // Password Change Modal state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   // Check existing session & load custom media
   useEffect(() => {
     const session = sessionStorage.getItem("ccs_admin_authenticated");
@@ -182,15 +193,27 @@ export default function AdminAccessPage() {
 
   // Open Page Content Editor for a given page
   const handleOpenPageEditor = (pageInfo: { path: string; title: string; section: string }) => {
+    const defaultPage = getEditablePage(pageInfo.path, pageInfo.title, pageInfo.section);
     const saved = localStorage.getItem(`ccs_page_content_${pageInfo.path}`);
     if (saved) {
       try {
-        setEditingPage(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Merge any new default sections/fields so newly added fields appear automatically
+        const mergedSections = defaultPage.sections.map((defSec) => {
+          const savedSec = parsed.sections?.find((s: { id: string }) => s.id === defSec.id);
+          if (!savedSec) return defSec;
+          const mergedFields = defSec.fields.map((defField) => {
+            const savedField = savedSec.fields?.find((f: { id: string }) => f.id === defField.id);
+            return savedField || defField;
+          });
+          return { ...defSec, ...savedSec, fields: mergedFields };
+        });
+        setEditingPage({ ...defaultPage, ...parsed, sections: mergedSections });
       } catch {
-        setEditingPage(getEditablePage(pageInfo.path, pageInfo.title, pageInfo.section));
+        setEditingPage(defaultPage);
       }
     } else {
-      setEditingPage(getEditablePage(pageInfo.path, pageInfo.title, pageInfo.section));
+      setEditingPage(defaultPage);
     }
     setSaveSuccess(false);
   };
@@ -259,9 +282,11 @@ export default function AdminAccessPage() {
     setTimeout(() => {
       setIsLoading(false);
 
+      const activePassword = localStorage.getItem("ccs_admin_password") || "citadel2026!";
+
       if (
         cleanEmail === "info@citadelchristian.org" &&
-        cleanPassword === "citadel2026!"
+        cleanPassword === activePassword
       ) {
         setIsAuthenticated(true);
         if (rememberMe) {
@@ -274,6 +299,49 @@ export default function AdminAccessPage() {
         );
       }
     }, 600);
+  };
+
+  // Handle Changing Password
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeError(null);
+    setPasswordChangeSuccess(null);
+
+    const activePassword = localStorage.getItem("ccs_admin_password") || "citadel2026!";
+
+    if (!currentPasswordInput) {
+      setPasswordChangeError("Please enter your current administrator password.");
+      return;
+    }
+
+    if (currentPasswordInput !== activePassword) {
+      setPasswordChangeError("The current password you entered is incorrect.");
+      return;
+    }
+
+    if (!newPasswordInput || newPasswordInput.length < 6) {
+      setPasswordChangeError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setPasswordChangeError("New password and confirmation do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setTimeout(() => {
+      localStorage.setItem("ccs_admin_password", newPasswordInput);
+      setIsChangingPassword(false);
+      setPasswordChangeSuccess("Password updated successfully! Please use this new password for future logins.");
+      setCurrentPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
+      setTimeout(() => {
+        setPasswordChangeSuccess(null);
+        setIsPasswordModalOpen(false);
+      }, 2000);
+    }, 400);
   };
 
   const handleSignOut = () => {
@@ -320,9 +388,8 @@ export default function AdminAccessPage() {
 
   // Filtered media for the inline picker
   const pickerMedia = allCombinedMedia.filter((m) => {
-    const isImage = m.type === "image";
     const matchesFolder = mediaPickerFolder === "all" || m.folder === mediaPickerFolder;
-    return isImage && matchesFolder;
+    return matchesFolder;
   });
 
   // Authenticated Administration Dashboard with Sidebar
@@ -466,17 +533,40 @@ export default function AdminAccessPage() {
             </nav>
           </div>
 
-          {/* User Profile & Sign Out Footer */}
+          {/* User Profile & Password Change Footer */}
           <div className="p-4 border-t border-slate-800 bg-slate-900/60">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#581076] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                CC
+            <button
+              type="button"
+              onClick={() => {
+                setPasswordChangeError(null);
+                setPasswordChangeSuccess(null);
+                setCurrentPasswordInput("");
+                setNewPasswordInput("");
+                setConfirmPasswordInput("");
+                setIsPasswordModalOpen(true);
+              }}
+              className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-slate-800 transition text-left cursor-pointer group mb-3 border border-transparent hover:border-purple-500/30"
+              title="Click to change your admin password"
+            >
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-[#581076] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                  CC
+                </div>
+                <div className="overflow-hidden">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-white group-hover:text-purple-300 transition truncate">
+                      Citadel Admin
+                    </p>
+                    <KeyRound className="w-3 h-3 text-purple-400 opacity-60 group-hover:opacity-100 transition" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">info@citadelchristian.org</p>
+                </div>
               </div>
-              <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">Citadel Admin</p>
-                <p className="text-[11px] text-slate-400 truncate">info@citadelchristian.org</p>
-              </div>
-            </div>
+              <span className="text-[10px] font-semibold text-purple-300 bg-purple-950/80 border border-purple-800/50 px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                Change Key
+              </span>
+            </button>
+
             <button
               onClick={handleSignOut}
               className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-slate-800 hover:bg-red-950/40 hover:text-red-300 text-slate-300 text-xs font-semibold border border-slate-700 transition cursor-pointer"
@@ -590,94 +680,108 @@ export default function AdminAccessPage() {
                       </div>
 
                       {/* Section Fields */}
-                      <div className="space-y-5">
-                        {section.fields.map((field, fIdx) => (
-                          <div key={field.id} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
-                                <span>{field.label}</span>
-                                <span className="text-[10px] font-mono text-slate-500">
-                                  ({field.id})
-                                </span>
-                              </label>
-                              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
-                                {field.type}
+                      {section.id === "campus_life" ? (
+                        <div className="space-y-8">
+                          {/* Top Section Settings (Title, Quote, Button) */}
+                          <div className="space-y-4 bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-400">
+                              Section Header &amp; CTA Settings
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {section.fields
+                                .filter((f) => !f.id.startsWith("img"))
+                                .map((field) => {
+                                  const fIdx = section.fields.findIndex((sf) => sf.id === field.id);
+                                  return (
+                                    <div
+                                      key={field.id}
+                                      className={`space-y-1.5 ${field.type === "textarea" ? "md:col-span-2" : ""}`}
+                                    >
+                                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                                        <span>{field.label}</span>
+                                        <span className="text-[10px] font-mono text-slate-500">
+                                          ({field.id})
+                                        </span>
+                                      </label>
+                                      {field.type === "textarea" ? (
+                                        <textarea
+                                          rows={3}
+                                          value={field.value}
+                                          onChange={(e) =>
+                                            handleFieldChange(sIdx, fIdx, e.target.value)
+                                          }
+                                          className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                                        />
+                                      ) : (
+                                        <input
+                                          type={field.type === "url" ? "url" : "text"}
+                                          value={field.value}
+                                          onChange={(e) =>
+                                            handleFieldChange(sIdx, fIdx, e.target.value)
+                                          }
+                                          className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+
+                          {/* 3x3 Visual Photo Grid */}
+                          <div className="space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                              <div>
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                  <ImageIcon className="w-4 h-4 text-purple-400" />
+                                  3x3 Campus Life Photo Gallery Grid
+                                </h3>
+                                <p className="text-xs text-slate-400">
+                                  Click on any image to replace it from the Media Library or upload a new photo.
+                                </p>
+                              </div>
+                              <span className="text-[11px] font-bold text-purple-300 bg-purple-950/80 px-3 py-1 rounded-full border border-purple-800/60 self-start sm:self-auto">
+                                9 Interactive Tiles
                               </span>
                             </div>
 
-                            {/* FIELD TYPE: TEXTAREA */}
-                            {field.type === "textarea" && (
-                              <textarea
-                                rows={4}
-                                value={field.value}
-                                onChange={(e) =>
-                                  handleFieldChange(sIdx, fIdx, e.target.value)
-                                }
-                                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition leading-relaxed"
-                              />
-                            )}
+                            {/* 3-Column Responsive Visual Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
+                                const srcIdx = section.fields.findIndex((f) => f.id === `img${num}_src`);
+                                const altIdx = section.fields.findIndex((f) => f.id === `img${num}_alt`);
+                                const capIdx = section.fields.findIndex((f) => f.id === `img${num}_caption`);
 
-                            {/* FIELD TYPE: TEXT & URL */}
-                            {(field.type === "text" || field.type === "url") && (
-                              <input
-                                type={field.type === "url" ? "url" : "text"}
-                                value={field.value}
-                                onChange={(e) =>
-                                  handleFieldChange(sIdx, fIdx, e.target.value)
-                                }
-                                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition"
-                              />
-                            )}
+                                const srcField = srcIdx !== -1 ? section.fields[srcIdx] : null;
+                                const altField = altIdx !== -1 ? section.fields[altIdx] : null;
+                                const capField = capIdx !== -1 ? section.fields[capIdx] : null;
 
-                            {/* FIELD TYPE: IMAGE */}
-                            {field.type === "image" && (
-                              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                  {/* Live Thumbnail */}
-                                  <div className="relative w-28 h-20 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex-shrink-0 flex items-center justify-center">
-                                    {field.value ? (
-                                      <Image
-                                        src={field.value}
-                                        alt={field.label}
-                                        fill
-                                        className="object-contain p-1"
-                                      />
-                                    ) : (
-                                      <ImageIcon className="w-6 h-6 text-slate-600" />
-                                    )}
-                                  </div>
-
-                                  {/* Path Input, Direct Cloud Upload, & Media Picker Button */}
-                                  <div className="flex-1 w-full space-y-2">
-                                    <div className="flex items-center gap-2">
-                                      <input
-                                        type="text"
-                                        value={field.value}
-                                        onChange={(e) =>
-                                          handleFieldChange(sIdx, fIdx, e.target.value)
-                                        }
-                                        placeholder="/images/example.jpg or https://..."
-                                        className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-purple-500"
-                                      />
-                                      {field.value?.startsWith("http") && (
-                                        <span className="flex-shrink-0 px-2 py-1 rounded bg-purple-900/60 border border-purple-500/40 text-[10px] font-bold text-purple-300 flex items-center gap-1">
-                                          <Cloud className="w-3 h-3" />
-                                          CDN
+                                return (
+                                  <div
+                                    key={num}
+                                    className="bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-purple-500/70 transition flex flex-col justify-between space-y-3.5 group shadow-md"
+                                  >
+                                    {/* Card Top: Number badge & Direct Upload */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-6 h-6 rounded-full bg-purple-900/60 border border-purple-500/40 text-[11px] font-bold text-purple-300 flex items-center justify-center">
+                                          {num}
                                         </span>
-                                      )}
-                                    </div>
+                                        <span className="text-xs font-bold text-slate-200">
+                                          Photo #{num}
+                                        </span>
+                                      </div>
 
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#581076] hover:bg-[#470a60] text-white text-xs font-semibold shadow-sm transition cursor-pointer">
-                                        {fieldUploadingId === `${sIdx}-${fIdx}` ? (
+                                      <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-purple-900/50 text-slate-300 hover:text-white text-[11px] font-semibold border border-slate-800 hover:border-purple-500/50 transition cursor-pointer">
+                                        {fieldUploadingId === `${sIdx}-${srcIdx}` ? (
                                           <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
                                             <span>Uploading...</span>
                                           </>
                                         ) : (
                                           <>
-                                            <UploadCloud className="w-3.5 h-3.5" />
-                                            <span>Upload &amp; Replace</span>
+                                            <UploadCloud className="w-3 h-3 text-purple-400" />
+                                            <span>Upload</span>
                                           </>
                                         )}
                                         <input
@@ -687,50 +791,378 @@ export default function AdminAccessPage() {
                                           disabled={isUploading}
                                           onChange={async (e) => {
                                             const file = e.target.files?.[0];
-                                            if (file) {
-                                              const fieldKey = `${sIdx}-${fIdx}`;
+                                            if (file && srcIdx !== -1) {
+                                              const fieldKey = `${sIdx}-${srcIdx}`;
                                               setFieldUploadingId(fieldKey);
                                               const uploadedUrl = await handleUploadFile(
                                                 file,
-                                                "images",
-                                                editingPage?.title || "Page Content"
+                                                "campus-life",
+                                                editingPage?.title || "Campus Life"
                                               );
                                               setFieldUploadingId(null);
                                               if (uploadedUrl) {
-                                                handleFieldChange(sIdx, fIdx, uploadedUrl);
+                                                handleFieldChange(sIdx, srcIdx, uploadedUrl);
                                               }
                                             }
                                           }}
                                         />
                                       </label>
+                                    </div>
 
-                                      <button
-                                        type="button"
-                                        onClick={() =>
+                                    {/* Visual Click-to-Replace Image Tile */}
+                                    <div
+                                      onClick={() => {
+                                        if (srcIdx !== -1) {
+                                          setMediaPickerFolder("campus-life");
                                           setMediaPickerTargetField({
                                             sectionIndex: sIdx,
-                                            fieldIndex: fIdx,
-                                          })
+                                            fieldIndex: srcIdx,
+                                          });
                                         }
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
-                                      >
-                                        <FolderOpen className="w-3.5 h-3.5 text-purple-400" />
-                                        <span>Select from Library</span>
-                                      </button>
+                                      }}
+                                      className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-slate-900 border border-slate-800 cursor-pointer group/tile hover:border-purple-500 hover:shadow-lg hover:shadow-purple-950/30 transition duration-200"
+                                      title="Click to select replacement photo from Media Library"
+                                    >
+                                      {srcField?.value ? (
+                                        <Image
+                                          src={srcField.value}
+                                          alt={altField?.value || `Campus Life Photo ${num}`}
+                                          fill
+                                          className="object-cover transition-transform duration-300 group-hover/tile:scale-105"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
+                                          <ImageIcon className="w-8 h-8 mb-1 text-slate-700" />
+                                          <span className="text-[11px] text-slate-500">No Image</span>
+                                        </div>
+                                      )}
+
+                                      {/* Interactive Hover Overlay */}
+                                      <div className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover/tile:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white p-3 text-center backdrop-blur-[2px]">
+                                        <div className="w-10 h-10 rounded-full bg-[#581076] text-white flex items-center justify-center shadow-lg mb-1.5 transform scale-90 group-hover/tile:scale-100 transition-transform">
+                                          <FolderOpen className="w-5 h-5 text-purple-200" />
+                                        </div>
+                                        <span className="text-xs font-bold text-white">Click to Replace</span>
+                                        <span className="text-[10px] text-purple-300">Choose from library</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Inputs: Path, Alt, Caption */}
+                                    <div className="space-y-2 pt-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <input
+                                          type="text"
+                                          value={srcField?.value || ""}
+                                          onChange={(e) => {
+                                            if (srcIdx !== -1) handleFieldChange(sIdx, srcIdx, e.target.value);
+                                          }}
+                                          placeholder="/campus-life/photo.webp or https://..."
+                                          className="w-full p-2 bg-slate-900 border border-slate-800 rounded-lg text-[11px] font-mono text-slate-200 focus:outline-none focus:border-purple-500"
+                                        />
+                                        {srcField?.value?.startsWith("http") && (
+                                          <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-purple-900/60 border border-purple-500/40 text-[9px] font-bold text-purple-300 flex items-center gap-0.5">
+                                            <Cloud className="w-2.5 h-2.5" />
+                                            CDN
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div>
+                                        <input
+                                          type="text"
+                                          value={altField?.value || ""}
+                                          onChange={(e) => {
+                                            if (altIdx !== -1) handleFieldChange(sIdx, altIdx, e.target.value);
+                                          }}
+                                          placeholder="Alt description for SEO/accessibility..."
+                                          className="w-full p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-[11px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <input
+                                          type="text"
+                                          value={capField?.value || ""}
+                                          onChange={(e) => {
+                                            if (capIdx !== -1) handleFieldChange(sIdx, capIdx, e.target.value);
+                                          }}
+                                          placeholder="Lightbox fullscreen caption..."
+                                          className="w-full p-2 bg-slate-900/90 border border-slate-800 rounded-lg text-[11px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-5">
+                          {section.fields.map((field, fIdx) => (
+                            <div key={field.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
+                                  <span>{field.label}</span>
+                                  <span className="text-[10px] font-mono text-slate-500">
+                                    ({field.id})
+                                  </span>
+                                </label>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
+                                  {field.type}
+                                </span>
+                              </div>
+
+                              {/* FIELD TYPE: TEXTAREA */}
+                              {field.type === "textarea" && (
+                                <textarea
+                                  rows={4}
+                                  value={field.value}
+                                  onChange={(e) =>
+                                    handleFieldChange(sIdx, fIdx, e.target.value)
+                                  }
+                                  className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition leading-relaxed"
+                                />
+                              )}
+
+                              {/* FIELD TYPE: TEXT & URL */}
+                              {(field.type === "text" || field.type === "url") && (
+                                <input
+                                  type={field.type === "url" ? "url" : "text"}
+                                  value={field.value}
+                                  onChange={(e) =>
+                                    handleFieldChange(sIdx, fIdx, e.target.value)
+                                  }
+                                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition"
+                                />
+                              )}
+
+                              {/* FIELD TYPE: IMAGE */}
+                              {field.type === "image" && (
+                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    {/* Live Clickable Thumbnail */}
+                                    <div
+                                      onClick={() =>
+                                        setMediaPickerTargetField({
+                                          sectionIndex: sIdx,
+                                          fieldIndex: fIdx,
+                                        })
+                                      }
+                                      className="relative w-28 h-20 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex-shrink-0 flex items-center justify-center cursor-pointer group/thumb hover:border-purple-500 transition"
+                                      title="Click on image to replace from library"
+                                    >
+                                      {field.value ? (
+                                        <Image
+                                          src={field.value}
+                                          alt={field.label}
+                                          fill
+                                          className="object-contain p-1 group-hover/thumb:scale-105 transition-transform"
+                                        />
+                                      ) : (
+                                        <ImageIcon className="w-6 h-6 text-slate-600" />
+                                      )}
+                                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
+                                        <FolderOpen className="w-5 h-5 text-white" />
+                                      </div>
+                                    </div>
+
+                                    {/* Path Input, Direct Cloud Upload, & Media Picker Button */}
+                                    <div className="flex-1 w-full space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="text"
+                                          value={field.value}
+                                          onChange={(e) =>
+                                            handleFieldChange(sIdx, fIdx, e.target.value)
+                                          }
+                                          placeholder="/images/example.jpg or https://..."
+                                          className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-purple-500"
+                                        />
+                                        {field.value?.startsWith("http") && (
+                                          <span className="flex-shrink-0 px-2 py-1 rounded bg-purple-900/60 border border-purple-500/40 text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                            <Cloud className="w-3 h-3" />
+                                            CDN
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#581076] hover:bg-[#470a60] text-white text-xs font-semibold shadow-sm transition cursor-pointer">
+                                          {fieldUploadingId === `${sIdx}-${fIdx}` ? (
+                                            <>
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                              <span>Uploading...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <UploadCloud className="w-3.5 h-3.5" />
+                                              <span>Upload &amp; Replace</span>
+                                            </>
+                                          )}
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            disabled={isUploading}
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) {
+                                                const fieldKey = `${sIdx}-${fIdx}`;
+                                                setFieldUploadingId(fieldKey);
+                                                const uploadedUrl = await handleUploadFile(
+                                                  file,
+                                                  "images",
+                                                  editingPage?.title || "Page Content"
+                                                );
+                                                setFieldUploadingId(null);
+                                                if (uploadedUrl) {
+                                                  handleFieldChange(sIdx, fIdx, uploadedUrl);
+                                                }
+                                              }
+                                            }}
+                                          />
+                                        </label>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setMediaPickerTargetField({
+                                              sectionIndex: sIdx,
+                                              fieldIndex: fIdx,
+                                            })
+                                          }
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                                        >
+                                          <FolderOpen className="w-3.5 h-3.5 text-purple-400" />
+                                          <span>Select from Library</span>
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {field.helpText && (
-                              <p className="text-[11px] text-slate-500 italic">
-                                {field.helpText}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                              {/* FIELD TYPE: FILE / DOCUMENT */}
+                              {field.type === "file" && (
+                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    {/* File Badge / Preview */}
+                                    <div
+                                      onClick={() => {
+                                        setMediaPickerFolder("files");
+                                        setMediaPickerTargetField({
+                                          sectionIndex: sIdx,
+                                          fieldIndex: fIdx,
+                                        });
+                                      }}
+                                      className="w-28 h-20 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex-shrink-0 flex flex-col items-center justify-center p-2 text-center cursor-pointer group/file hover:border-purple-500 transition"
+                                      title="Click to select file from library"
+                                    >
+                                      <FileText className="w-7 h-7 text-purple-400 mb-1 group-hover/file:scale-110 transition-transform" />
+                                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide truncate max-w-full px-1">
+                                        {field.value ? field.value.split("/").pop() : "No File"}
+                                      </span>
+                                    </div>
+
+                                    {/* Path Input, Direct Cloud Upload, & Media Picker Button */}
+                                    <div className="flex-1 w-full space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="text"
+                                          value={field.value}
+                                          onChange={(e) =>
+                                            handleFieldChange(sIdx, fIdx, e.target.value)
+                                          }
+                                          placeholder="/files/calendar.pdf or https://..."
+                                          className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono focus:outline-none focus:border-purple-500"
+                                        />
+                                        {field.value?.startsWith("http") && (
+                                          <span className="flex-shrink-0 px-2 py-1 rounded bg-purple-900/60 border border-purple-500/40 text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                            <Cloud className="w-3 h-3" />
+                                            CDN
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#581076] hover:bg-[#470a60] text-white text-xs font-semibold shadow-sm transition cursor-pointer">
+                                          {fieldUploadingId === `${sIdx}-${fIdx}` ? (
+                                            <>
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                              <span>Uploading...</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <UploadCloud className="w-3.5 h-3.5" />
+                                              <span>Upload &amp; Replace (PDF)</span>
+                                            </>
+                                          )}
+                                          <input
+                                            type="file"
+                                            accept="application/pdf,.pdf,.doc,.docx,image/*"
+                                            className="hidden"
+                                            disabled={isUploading}
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) {
+                                                const fieldKey = `${sIdx}-${fIdx}`;
+                                                setFieldUploadingId(fieldKey);
+                                                const uploadedUrl = await handleUploadFile(
+                                                  file,
+                                                  "files",
+                                                  editingPage?.title || "Calendar File"
+                                                );
+                                                setFieldUploadingId(null);
+                                                if (uploadedUrl) {
+                                                  handleFieldChange(sIdx, fIdx, uploadedUrl);
+                                                }
+                                              }
+                                            }}
+                                          />
+                                        </label>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMediaPickerFolder("files");
+                                            setMediaPickerTargetField({
+                                              sectionIndex: sIdx,
+                                              fieldIndex: fIdx,
+                                            });
+                                          }}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                                        >
+                                          <FolderOpen className="w-3.5 h-3.5 text-purple-400" />
+                                          <span>Select from Library</span>
+                                        </button>
+
+                                        {field.value && (
+                                          <a
+                                            href={field.value}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-purple-400 hover:text-purple-300 text-xs font-semibold border border-slate-800 transition"
+                                          >
+                                            <span>Preview File</span>
+                                            <ExternalLink className="w-3 h-3" />
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {field.helpText && (
+                                <p className="text-[11px] text-slate-500 italic">
+                                  {field.helpText}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1195,10 +1627,10 @@ export default function AdminAccessPage() {
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
                   <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5 text-purple-400" />
-                    Select an Image from Media Library
+                    <FolderOpen className="w-5 h-5 text-purple-400" />
+                    Select Asset from Media Library
                   </h3>
-                  <p className="text-xs text-slate-400">Choose an image organized by folder to swap into this field.</p>
+                  <p className="text-xs text-slate-400">Choose an image or document organized by folder to swap into this field.</p>
                 </div>
                 <button
                   type="button"
@@ -1211,7 +1643,7 @@ export default function AdminAccessPage() {
 
               {/* Folder switcher inside media picker */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {["all", "images", "logos", "headers", "campus-life"].map((f) => (
+                {["all", "images", "logos", "headers", "campus-life", "files", "brand"].map((f) => (
                   <button
                     key={f}
                     type="button"
@@ -1222,7 +1654,7 @@ export default function AdminAccessPage() {
                         : "bg-slate-800 text-slate-400 hover:text-white"
                     }`}
                   >
-                    {f === "all" ? "All Images" : `/${f}`}
+                    {f === "all" ? "All Files" : `/${f}`}
                   </button>
                 ))}
               </div>
@@ -1243,14 +1675,21 @@ export default function AdminAccessPage() {
                     }}
                     className="bg-slate-950 hover:bg-slate-800 rounded-xl p-2.5 border border-slate-800 hover:border-purple-500 transition cursor-pointer flex flex-col space-y-2 group"
                   >
-                    <div className="relative w-full h-24 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
-                      <Image
-                        src={asset.path}
-                        alt={asset.name}
-                        fill
-                        className="object-contain p-1 group-hover:scale-105 transition-transform"
-                      />
-                    </div>
+                    {asset.type === "image" ? (
+                      <div className="relative w-full h-24 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
+                        <Image
+                          src={asset.path}
+                          alt={asset.name}
+                          fill
+                          className="object-contain p-1 group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative w-full h-24 bg-slate-900 rounded-lg flex flex-col items-center justify-center p-2 text-center border border-slate-800">
+                        <FileText className="w-8 h-8 text-purple-400 mb-1" />
+                        <span className="text-[9px] uppercase font-mono text-slate-400">PDF / File</span>
+                      </div>
+                    )}
                     <div>
                       <span className="text-[9px] font-mono text-purple-400 block">/{asset.folder}</span>
                       <p className="text-[11px] font-bold text-white truncate" title={asset.name}>
@@ -1444,7 +1883,7 @@ export default function AdminAccessPage() {
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
                   <div className="flex items-center gap-1 text-slate-300 font-semibold">
                     <Info className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Vercel Blob / Cloud Storage Info</span>
+                    <span>Cloud Storage Information</span>
                   </div>
                   <p>
                     Uploaded assets receive a global high-performance CDN URL and appear immediately in your Media Library and Page Content Editor.
@@ -1464,6 +1903,149 @@ export default function AdminAccessPage() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Change Password Modal */}
+        {isPasswordModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 border border-slate-800 animate-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-900/40 text-purple-300 flex items-center justify-center border border-purple-500/30">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base">Change Admin Password</h3>
+                    <p className="text-xs text-slate-400">Update credentials for info@citadelchristian.org</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Feedback messages */}
+              {passwordChangeError && (
+                <div className="p-3.5 rounded-xl bg-red-950/70 border border-red-500/40 text-red-300 text-xs flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
+                  <span>{passwordChangeError}</span>
+                </div>
+              )}
+
+              {passwordChangeSuccess && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                  <span>{passwordChangeSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                {/* Current Password */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      required
+                      value={currentPasswordInput}
+                      onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                      placeholder="Enter current password..."
+                      className="w-full p-2.5 pr-10 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    New Password (min. 6 characters)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      placeholder="Enter new strong password..."
+                      className="w-full p-2.5 pr-10 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm New Password */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPasswordInput}
+                    onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                    placeholder="Re-enter new password..."
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                {/* Modal Buttons */}
+                <div className="pt-3 flex items-center justify-between gap-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Reset password back to institutional default ('citadel2026!')?")) {
+                        localStorage.removeItem("ccs_admin_password");
+                        setPasswordChangeSuccess("Reset back to default password ('citadel2026!').");
+                        setTimeout(() => {
+                          setPasswordChangeSuccess(null);
+                          setIsPasswordModalOpen(false);
+                        }, 1800);
+                      }
+                    }}
+                    className="text-[11px] text-slate-500 hover:text-purple-400 font-semibold cursor-pointer transition"
+                  >
+                    Reset to Default
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPasswordModalOpen(false)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isChangingPassword}
+                      className="px-4 py-2 rounded-xl bg-[#581076] hover:bg-[#470a60] text-white text-xs font-bold shadow-lg shadow-purple-950/50 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isChangingPassword ? "Saving..." : "Update Password"}
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
         )}

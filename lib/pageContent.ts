@@ -1,7 +1,7 @@
 export interface ContentField {
   id: string;
   label: string;
-  type: "text" | "textarea" | "image" | "url";
+  type: "text" | "textarea" | "image" | "url" | "file";
   value: string;
   helpText?: string;
 }
@@ -160,10 +160,80 @@ export const defaultPageContents: Record<string, EditablePage> = {
       {
         id: "calendar",
         title: "School Calendar Download Section",
+        description: "Homepage School Calendar card, background banner, and downloadable PDF attachment.",
         fields: [
-          { id: "cal_title", label: "Calendar Section Title", type: "text", value: "2026 - 2027 Academic Calendar" },
-          { id: "cal_image", label: "Calendar Background Image", type: "image", value: "/images/calendar.jpg" },
-          { id: "cal_button", label: "Download Button Label", type: "text", value: "Download Calendar" },
+          { id: "cal_title", label: "Calendar Section Title", type: "text", value: "School Calendar" },
+          { id: "cal_subtitle", label: "Calendar Subtitle / Description", type: "text", value: "Check out our school calendar for the 2026-2027 school year" },
+          { id: "cal_image", label: "Calendar Background Banner Image", type: "image", value: "/images/calendar.jpg" },
+          { id: "cal_button", label: "Download Button Label", type: "text", value: "DOWNLOAD NOW" },
+          {
+            id: "cal_file",
+            label: "Downloadable PDF Calendar File / Link",
+            type: "file",
+            value: "/files/2026-2027-School-Calendar.pdf",
+            helpText: "Path or URL to the downloadable PDF calendar (e.g. /files/2026-2027-School-Calendar.pdf or upload a new PDF file).",
+          },
+        ],
+      },
+      {
+        id: "campus_life",
+        title: "Campus Life 3x3 Photo Gallery Grid",
+        description: "Homepage Campus Life photo gallery with 9 images, alt descriptions, captions, and section header text.",
+        fields: [
+          { id: "cl_title", label: "Section Title", type: "text", value: "Campus Life" },
+          {
+            id: "cl_quote",
+            label: "Inspirational Quote / Subtext",
+            type: "textarea",
+            value: "Dream big, work hard, stay focused, and surround yourself with good people—\u201cwhoever walks with the wise becomes wise\u201d (Proverbs 13:20)",
+          },
+          { id: "cl_btn_text", label: "Button Text", type: "text", value: "KNOW MORE" },
+          { id: "cl_btn_url", label: "Button Link URL", type: "url", value: "/campus-life" },
+
+          // Image 1
+          { id: "img1_src", label: "Photo 1 (Top Left) Image", type: "image", value: "/campus-life/campus01.webp" },
+          { id: "img1_alt", label: "Photo 1 Alt Description", type: "text", value: "Citadel Christian School students hugging teacher outdoors" },
+          { id: "img1_caption", label: "Photo 1 Lightbox Caption", type: "text", value: "Loving community and mentorship between teachers and students" },
+
+          // Image 2
+          { id: "img2_src", label: "Photo 2 (Top Center) Image", type: "image", value: "/campus-life/campus02.webp" },
+          { id: "img2_alt", label: "Photo 2 Alt Description", type: "text", value: "Elementary student displaying science solar system project" },
+          { id: "img2_caption", label: "Photo 2 Lightbox Caption", type: "text", value: "Hands-on classical science and discovery projects" },
+
+          // Image 3
+          { id: "img3_src", label: "Photo 3 (Top Right) Image", type: "image", value: "/campus-life/campus03.webp" },
+          { id: "img3_alt", label: "Photo 3 Alt Description", type: "text", value: "Young students smiling in wooden playground structure" },
+          { id: "img3_caption", label: "Photo 3 Lightbox Caption", type: "text", value: "Joyful recess and outdoor campus fellowship" },
+
+          // Image 4
+          { id: "img4_src", label: "Photo 4 (Middle Left) Image", type: "image", value: "/campus-life/campus04.webp" },
+          { id: "img4_alt", label: "Photo 4 Alt Description", type: "text", value: "Secondary students enjoying campus outdoors" },
+          { id: "img4_caption", label: "Photo 4 Lightbox Caption", type: "text", value: "Upper school students building lifelong friendships" },
+
+          // Image 5
+          { id: "img5_src", label: "Photo 5 (Middle Center) Image", type: "image", value: "/campus-life/campus05.webp" },
+          { id: "img5_alt", label: "Photo 5 Alt Description", type: "text", value: "Teacher guiding hands-on nature and plant discovery" },
+          { id: "img5_caption", label: "Photo 5 Lightbox Caption", type: "text", value: "Exploring God's creation in our outdoor learning spaces" },
+
+          // Image 6
+          { id: "img6_src", label: "Photo 6 (Middle Right) Image", type: "image", value: "/campus-life/campus06.webp" },
+          { id: "img6_alt", label: "Photo 6 Alt Description", type: "text", value: "Student exploring geography and globe in classroom" },
+          { id: "img6_caption", label: "Photo 6 Lightbox Caption", type: "text", value: "Classical geography and world history exploration" },
+
+          // Image 7
+          { id: "img7_src", label: "Photo 7 (Bottom Left) Image", type: "image", value: "/campus-life/campus07.webp" },
+          { id: "img7_alt", label: "Photo 7 Alt Description", type: "text", value: "Student having fun on the playground slide" },
+          { id: "img7_caption", label: "Photo 7 Lightbox Caption", type: "text", value: "Safe, cheerful recreation for younger grades" },
+
+          // Image 8
+          { id: "img8_src", label: "Photo 8 (Bottom Center) Image", type: "image", value: "/campus-life/campus08.webp" },
+          { id: "img8_alt", label: "Photo 8 Alt Description", type: "text", value: "Students on the playground geometric climbing dome" },
+          { id: "img8_caption", label: "Photo 8 Lightbox Caption", type: "text", value: "Active play and physical development on our playground" },
+
+          // Image 9
+          { id: "img9_src", label: "Photo 9 (Bottom Right) Image", type: "image", value: "/campus-life/campus09.webp" },
+          { id: "img9_alt", label: "Photo 9 Alt Description", type: "text", value: "Teacher providing personalized classroom support to student" },
+          { id: "img9_caption", label: "Photo 9 Lightbox Caption", type: "text", value: "Individual attention and caring instruction in every classroom" },
         ],
       },
     ],
@@ -363,6 +433,18 @@ export const defaultPageContents: Record<string, EditablePage> = {
           { id: "title", label: "Page Title", type: "text", value: "Campus Life at Citadel" },
           { id: "subtitle", label: "Subtitle", type: "text", value: "Where faith, friendship, and student leadership flourish." },
           { id: "image", label: "Banner Image", type: "image", value: "/images/CCSLife-Intro-1280x720-A.jpg" },
+        ],
+      },
+      {
+        id: "calendar_card",
+        title: "School Calendar Card",
+        description: "Campus Life page calendar photo banner and download link.",
+        fields: [
+          { id: "cal_title", label: "Card Title", type: "text", value: "School Calendar" },
+          { id: "cal_desc", label: "Description", type: "text", value: "Check out our school calendar for the 2026-2027 school year" },
+          { id: "cal_image", label: "Calendar Image Banner", type: "image", value: "/images/calendar.jpg" },
+          { id: "cal_file", label: "Calendar PDF File", type: "file", value: "/files/2026-2027-School-Calendar.pdf" },
+          { id: "cal_btn", label: "Button Text", type: "text", value: "DOWNLOAD NOW" },
         ],
       },
     ],

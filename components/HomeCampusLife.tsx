@@ -54,21 +54,65 @@ const galleryImages = [
 ];
 
 export default function HomeCampusLife() {
+  const [gallery, setGallery] = useState(galleryImages);
+  const [title, setTitle] = useState("Campus Life");
+  const [quote, setQuote] = useState(
+    "Dream big, work hard, stay focused, and surround yourself with good people—“whoever walks with the wise becomes wise” (Proverbs 13:20)"
+  );
+  const [btnText, setBtnText] = useState("KNOW MORE");
+  const [btnUrl, setBtnUrl] = useState("/campus-life");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Load custom content saved by admin in localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("ccs_page_content_/");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const clSection = parsed.sections?.find((s: { id: string }) => s.id === "campus_life");
+        if (clSection && clSection.fields) {
+          const f = (id: string, def: string) =>
+            clSection.fields.find((field: { id: string; value: string }) => field.id === id)?.value || def;
+
+          setTitle(f("cl_title", "Campus Life"));
+          setQuote(
+            f(
+              "cl_quote",
+              "Dream big, work hard, stay focused, and surround yourself with good people—“whoever walks with the wise becomes wise” (Proverbs 13:20)"
+            )
+          );
+          setBtnText(f("cl_btn_text", "KNOW MORE"));
+          setBtnUrl(f("cl_btn_url", "/campus-life"));
+
+          const updatedImages = galleryImages.map((defImg, idx) => {
+            const num = idx + 1;
+            return {
+              src: f(`img${num}_src`, defImg.src),
+              alt: f(`img${num}_alt`, defImg.alt),
+              caption: f(`img${num}_caption`, defImg.caption),
+            };
+          });
+          setGallery(updatedImages);
+        }
+      } catch {
+        // Fallback to default
+      }
+    }
+  }, []);
 
   const handlePrev = useCallback(() => {
     if (lightboxIndex === null) return;
     setLightboxIndex((prev) =>
-      prev === null ? null : (prev - 1 + galleryImages.length) % galleryImages.length
+      prev === null ? null : (prev - 1 + gallery.length) % gallery.length
     );
-  }, [lightboxIndex]);
+  }, [lightboxIndex, gallery.length]);
 
   const handleNext = useCallback(() => {
     if (lightboxIndex === null) return;
     setLightboxIndex((prev) =>
-      prev === null ? null : (prev + 1) % galleryImages.length
+      prev === null ? null : (prev + 1) % gallery.length
     );
-  }, [lightboxIndex]);
+  }, [lightboxIndex, gallery.length]);
 
   const handleClose = useCallback(() => {
     setLightboxIndex(null);
@@ -100,16 +144,16 @@ export default function HomeCampusLife() {
         {/* Section Header */}
         <div className="text-center space-y-3 mb-10 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#581076] tracking-tight">
-            Campus Life
+            {title}
           </h2>
           <p className="text-slate-600 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed">
-            Dream big, work hard, stay focused, and surround yourself with good people—&ldquo;whoever walks with the wise becomes wise&rdquo; (Proverbs 13:20)
+            {quote}
           </p>
         </div>
 
         {/* 3x3 Photo Gallery Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5 mb-12">
-          {galleryImages.map((item, index) => (
+          {gallery.map((item, index) => (
             <button
               key={index}
               type="button"
@@ -136,10 +180,10 @@ export default function HomeCampusLife() {
         {/* Know More CTA Button */}
         <div className="flex justify-center">
           <Link
-            href="/campus-life"
+            href={btnUrl}
             className="inline-flex items-center justify-center px-9 py-2.5 rounded-full border-2 border-[#581076] text-[#581076] font-bold text-xs uppercase tracking-wider hover:bg-[#581076] hover:text-white transition-all duration-200 shadow-sm"
           >
-            KNOW MORE
+            {btnText}
           </Link>
         </div>
       </div>
