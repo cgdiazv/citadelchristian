@@ -122,6 +122,8 @@ export const allMediaAssets: MediaItem[] = [
   { name: "Development-Director-Job-Description-1.pdf", path: "/files/Development-Director-Job-Description-1.pdf", folder: "files", category: "Employment", type: "document" },
   { name: "Business-Manager-1.pdf", path: "/files/Business-Manager-1.pdf", folder: "files", category: "Employment", type: "document" },
   { name: "VolunteerDriverFormCCS.pdf", path: "/files/VolunteerDriverFormCCS.pdf", folder: "files", category: "Volunteer & Parent Forms", type: "document" },
+  { name: "CCS-Prearranged-Absence-for-Secondary-2026.pdf", path: "/files/CCS-Prearranged-Absence-for-Secondary-2026.pdf", folder: "files", category: "Volunteer & Parent Forms", type: "document" },
+  { name: "CCS-Prearranged-Absence-for-Grammar-School-2026.pdf", path: "/files/CCS-Prearranged-Absence-for-Grammar-School-2026.pdf", folder: "files", category: "Volunteer & Parent Forms", type: "document" },
   { name: "Parent-Association-2026-27.pdf", path: "/files/Parent-Association-2026-27.pdf", folder: "files", category: "Parent Association", type: "document" },
   { name: "Why-Classical-Education-Matters-More-in-the-Age-of-AI.pdf", path: "/files/Why-Classical-Education-Matters-More-in-the-Age-of-AI.pdf", folder: "files", category: "Articles & Resources", type: "document" },
   { name: "How-Classical-Education-Forms-Character-Not-Just-Knowledge-_-CCS.pdf", path: "/files/How-Classical-Education-Forms-Character-Not-Just-Knowledge-_-CCS.pdf", folder: "files", category: "Articles & Resources", type: "document" },

@@ -39,12 +39,12 @@ const rightForms = [
     file: "/files/Parent-Student-Handbook-2026-27.pdf",
   },
   {
-    title: "Prearranged Absence Form \u2013 Elementary",
-    file: "/files/ccs_prearranged_absence_for_elementary.pdf",
+    title: "Prearranged Absence Form \u2013 Secondary",
+    file: "/files/CCS-Prearranged-Absence-for-Secondary-2026.pdf",
   },
   {
-    title: "Prearranged Absence Form \u2013 Secondary",
-    file: "/files/ccs_prearranged_absence_for_secondary.pdf",
+    title: "Prearranged Absence Form \u2013 Grammar School",
+    file: "/files/CCS-Prearranged-Absence-for-Grammar-School-2026.pdf",
   },
   {
     title: "Prearranged Attendance on Satellite Day for UMS student",
