@@ -121,12 +121,9 @@ export default function EmploymentPage() {
           </p>
 
           <div className="pt-2">
-            <p className="font-bold text-slate-900">
-              Positions for the 26-27 School Year:
+            <p className="font-medium text-slate-800">
+              All faculty positions for the 26-27 school year have been filled. Applications for the 27-28 school year will be considered as positions become available.
             </p>
-            <ul className="list-disc pl-6 mt-1 space-y-1 text-slate-700">
-              <li>Development Director</li>
-            </ul>
           </div>
 
           <p className="pt-1">
