@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Lock,
   Mail,
   Eye,
   EyeOff,
@@ -12,7 +11,6 @@ import {
   ArrowRight,
   AlertCircle,
   KeyRound,
-  HelpCircle,
   LogOut,
   ExternalLink,
   Users,
@@ -117,7 +115,6 @@ export default function AdminAccessPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Password Change Modal state
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -2078,11 +2075,7 @@ export default function AdminAccessPage() {
           </Link>
 
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-purple-500/20 text-purple-200 border border-purple-400/30">
-              <Lock className="w-3.5 h-3.5" />
-              Administrative Portal
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Staff &amp; Admin Access
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-sm mx-auto font-light">
@@ -2130,21 +2123,13 @@ export default function AdminAccessPage() {
 
             {/* Password Field */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-700"
-                >
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowHelpModal(true)}
-                  className="text-xs text-[#581076] hover:text-[#470a60] font-semibold hover:underline cursor-pointer"
-                >
-                  Need help?
-                </button>
-              </div>
+              <label
+                htmlFor="password"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+              >
+                Password
+              </label>
+
               <div className="relative rounded-lg shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                   <KeyRound className="h-4 w-4" />
@@ -2230,49 +2215,7 @@ export default function AdminAccessPage() {
         </div>
       </div>
 
-      {/* Help Modal */}
-      {showHelpModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
-                <HelpCircle className="w-5 h-5 text-[#581076]" />
-                Administrative Access Assistance
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowHelpModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="text-slate-600 text-sm space-y-3 leading-relaxed">
-              <p>
-                Access to this section is restricted solely to authorized Citadel Christian School administrators, faculty, and leadership.
-              </p>
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1.5">
-                <p className="font-semibold text-slate-800">
-                  Authorized Administrator Account:
-                </p>
-                <p>
-                  Username: <strong className="text-[#581076]">info@citadelchristian.org</strong>
-                </p>
-                <p>Direct Campus Phone: (979) 830-1177</p>
-              </div>
-            </div>
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowHelpModal(false)}
-                className="w-full py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold tracking-wide uppercase transition cursor-pointer"
-              >
-                Close Window
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
