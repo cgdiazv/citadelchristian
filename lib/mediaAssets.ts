@@ -130,6 +130,7 @@ export const allMediaAssets: MediaItem[] = [
   { name: "What-the-University-Model-Offers-_-CCS-Article.pdf", path: "/files/What-the-University-Model-Offers-_-CCS-Article.pdf", folder: "files", category: "Articles & Resources", type: "document" },
   { name: "CCS-Blog-_-Why-We-Study-Latin.pdf", path: "/files/CCS-Blog-_-Why-We-Study-Latin.pdf", folder: "files", category: "Articles & Resources", type: "document" },
   { name: "What-the-Trivium-Actually-Is.pdf", path: "/files/What-the-Trivium-Actually-Is.pdf", folder: "files", category: "Articles & Resources", type: "document" },
+  { name: "Why-Good-Habits-Matter-in-Christian-Education.pdf", path: "/files/Why-Good-Habits-Matter-in-Christian-Education.pdf", folder: "files", category: "Articles & Resources", type: "document" },
   { name: "Rising-1st-Grade-Summer-Plan.pdf", path: "/files/Rising-1st-Grade-Summer-Plan.pdf", folder: "files", category: "Summer Reading", type: "document" },
   { name: "Rising-2nd-Grade-Summer-Reading.pdf", path: "/files/Rising-2nd-Grade-Summer-Reading.pdf", folder: "files", category: "Summer Reading", type: "document" },
   { name: "Rising-3rd-Grade-Summer-Reading.pdf", path: "/files/Rising-3rd-Grade-Summer-Reading.pdf", folder: "files", category: "Summer Reading", type: "document" },
